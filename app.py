@@ -30,14 +30,26 @@ st.markdown("""
 def load_artifacts():
     try:
         pipeline = joblib.load('model.pkl')
+    except Exception as e:
+        st.warning(f"Model mismatch detected ({e}). Rebuilding the model locally...")
+        # Automatically retrain if the pickle is incompatible
+        os.system("python analyze_housing.py")
+        try:
+            pipeline = joblib.load('model.pkl')
+        except Exception as e2:
+            st.error(f"Failed to rebuild and load model: {e2}")
+            return None, {}, None
+
+    try:
         metrics = {}
         if os.path.exists('metrics.json'):
             with open('metrics.json', 'r') as f:
                 metrics = json.load(f)
         df_imp = pd.read_csv('feature_importance.csv') if os.path.exists('feature_importance.csv') else None
         return pipeline, metrics, df_imp
-    except:
-        return None, {}, None
+    except Exception as e:
+        st.error(f"Error loading secondary artifacts: {e}")
+        return pipeline, {}, None
 
 # Feature Engineering
 def engineer_features(df):
