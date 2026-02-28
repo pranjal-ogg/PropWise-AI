@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+import sys
+import subprocess
 import json
 from datetime import datetime
 import matplotlib.pyplot as plt
@@ -33,11 +35,15 @@ def load_artifacts():
     except Exception as e:
         st.warning(f"Model mismatch detected ({e}). Rebuilding the model locally...")
         # Automatically retrain if the pickle is incompatible
-        os.system("python analyze_housing.py")
         try:
+            result = subprocess.run([sys.executable, "analyze_housing.py"], capture_output=True, text=True, check=True)
+            st.success("Model rebuilt successfully.")
             pipeline = joblib.load('model.pkl')
+        except subprocess.CalledProcessError as e_build:
+            st.error(f"Failed to rebuild the model. Error: {e_build.stderr}")
+            return None, {}, None
         except Exception as e2:
-            st.error(f"Failed to rebuild and load model: {e2}")
+            st.error(f"Failed to load rebuilt model: {e2}")
             return None, {}, None
 
     try:
